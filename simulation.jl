@@ -28,7 +28,7 @@ module Simulation
         init_c = choose_initial_cooperators(population)
         for dg = 0:0.1:1
             for dr = 0:0.1:1
-                fc = run(society, init_c, dg, dr)
+                @time fc = run(society, init_c, dg, dr)
                 DataFrame(Dg = [dg], Dr = [dr], Fc = [fc]) |> CSV.write("result$(episode).csv", append=true)
             end
         end
@@ -37,6 +37,7 @@ end
 
 using .Simulation
 using PyCall
+using Random
 @pyimport networkx as nx
 
 const num_episode = 100
@@ -44,5 +45,6 @@ const population = 10000
 const topology = nx.barabasi_albert_graph(population, 4)
 
 for episode = 1:num_episode
+    Random.seed!()
     one_episode(episode, population, topology)
 end

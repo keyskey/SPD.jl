@@ -1,13 +1,9 @@
-include("society.jl")
-
 module Decision
     export choose_initial_cooperators, initialize_strategy, count_payoff, pairwise_fermi, count_fc
-    using ..Society
-    using PyCall
-    @pyimport random as rnd
+    using StatsBase
 
     function choose_initial_cooperators(population)
-        init_c = rnd.sample(1:population, k= Int(population/2)) # rand(1:size, Int(size/2)) permits duplicated random sampling
+        init_c = StatsBase.self_avoid_sample!(1:population, [i for i = 1:Int(population/2)])
 
         return init_c
     end
@@ -18,11 +14,11 @@ module Decision
         end
     end
 
-    function count_payoff(society::SocietyType, dg::Float64, dr::Float64)
-        R::Float64 = 1
-        T::Float64 = 1+dg
-        S::Float64 = -dr
-        P::Float64 = 0
+    function count_payoff(society, dg, dr)
+        R = 1
+        T = 1+dg
+        S = -dr
+        P = 0
 
         for id = 1:society.population
             society.point[id] = 0
@@ -40,7 +36,7 @@ module Decision
         end
     end
     
-    function pairwise_fermi(society::SocietyType)
+    function pairwise_fermi(society)
         for id = 1:society.population
             opp_id = rand(society.neighbors_id[id])
             society.next_strategy[id] = ifelse(rand() < 1/(1+exp((society.point[id] - society.point[opp_id])/0.1)), society.strategy[opp_id], society.strategy[id])
@@ -48,7 +44,7 @@ module Decision
         society.strategy = copy(society.next_strategy)
     end
 
-    function count_fc(society::SocietyType)
+    function count_fc(society)
         fc = length([1 for strategy in society.strategy if strategy == "C"])/society.population
 
         return fc
