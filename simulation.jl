@@ -1,50 +1,50 @@
-include("society.jl")
 include("decision.jl")
 
 module Simulation
-    export run, one_episode
-    using ..Society
     using ..Decision
+    using ..Society
     using CSV
     using DataFrames
+    using Statistics
+    using Random
     
-    function run(society, init_c, dg, dr)
+    function time_loop(society::SocietyType, init_c::Vector{Int}, episode::Int, beta::Float16, dg::Float16, dr::Float16)
         initialize_strategy(society, init_c)
         init_fc = count_fc(society)
-        println("Dg: $(dg), Dr: $(dr), Time: 0, Fc:$(init_fc)")
+        fc_hist = [init_fc]
+        println("Episode: $(episode), Beta: $(beta), Dg: $(dg), Dr: $(dr), Time: 0, Fc:$(init_fc)")
         for step = 1:1000
             count_payoff(society, dg, dr)
-            pairwise_fermi(society)
-            global fc = count_fc(society)
-            println("Dg: $(dg), Dr: $(dr), Time: $(step), Fc:$(fc)")
+            pairwise_fermi(society, 1/beta)
+            fc = count_fc(society)
+            #println("Episode: $(episode), Beta: $(beta), Dg: $(dg), Dr: $(dr), Time: $(step), Fc:$(fc)")
+            push!(fc_hist, fc)
+
+            if fc == 0 || fc == 1 || step == 1000
+                global solution = fc
+                break
+            elseif step >= 100 && (Statistics.mean(fc_hist[step-99:step])-fc)/fc <= 0.001
+                global solution =  Statistics.mean(fc_hist[step-99:step])
+                break
+            end
         end
 
-        return fc
+        return solution
     end
 
-    function one_episode(episode, population, topology)
-        society = SocietyType(population, topology)
-        DataFrame(Dg = [], Dr = [], Fc = []) |> CSV.write("result$(episode).csv")
+    function one_episode(episode::Int, population::Int, topology)
+        Random.seed!()
+        society::SocietyType = SocietyType(population, topology)
+        DataFrame(Beta = [], Dg = [], Dr = [], Fc = []) |> CSV.write("episode_$(episode).csv")
         init_c = choose_initial_cooperators(population)
-        for dg = 0:0.1:1
-            for dr = 0:0.1:1
-                @time fc = run(society, init_c, dg, dr)
-                DataFrame(Dg = [dg], Dr = [dr], Fc = [fc]) |> CSV.write("result$(episode).csv", append=true)
+        for beta::Float16 in [10]
+            for dg::Float16 = -1.0:0.1:1.0
+                for dr::Float16 = -1.0:0.1:1.0
+                    fc = time_loop(society, init_c, episode, beta, dg, dr)
+                    DataFrame(Beta = [beta], Dg = [dg], Dr = [dr], Fc = [fc]) |> CSV.write("episode_$(episode).csv", append=true)
+                end
             end
         end
     end
 end
 
-using .Simulation
-using PyCall
-using Random
-@pyimport networkx as nx
-
-const num_episode = 100
-const population = 10000
-const topology = nx.barabasi_albert_graph(population, 4)
-
-for episode = 1:num_episode
-    Random.seed!()
-    one_episode(episode, population, topology)
-end
