@@ -38,8 +38,8 @@ module Simulation
         DataFrame(Beta = [], Dg = [], Dr = [], Fc = []) |> CSV.write("episode_$(episode).csv")
         init_c = choose_initial_cooperators(population)
         for beta in [10]
-            for dg = -1.0:0.1:1.0
-                for dr = -1.0:0.1:1.0
+            for dg = 0.0:0.1:1.0  #-1.0:0.1:1.0
+                for dr = 0.0:0.1:1.0  #-1.0:0.1:1.0
                     fc = time_loop(society, init_c, episode, beta, dg, dr)
                     DataFrame(Beta = [beta], Dg = [dg], Dr = [dr], Fc = [fc]) |> CSV.write("episode_$(episode).csv", append=true)
                 end

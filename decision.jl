@@ -15,7 +15,6 @@ module Decision
         for id = 1:society.population
             if id in init_c
                 society.strategy[id] = "C"
-                society.num_c += 1
             else
                 society.strategy[id] = "D" 
             end
@@ -45,17 +44,15 @@ module Decision
     end
     
     function pairwise_fermi(society::SocietyType, kappa)
-        society.num_c = 0
         for id = 1:society.population
             opp_id = rand(society.neighbors_id[id])
             society.next_strategy[id] = ifelse(rand() < 1/(1+exp((society.point[id] - society.point[opp_id])/kappa)), society.strategy[opp_id], society.strategy[id])
-            society.num_c += ifelse(society.next_strategy[id] == "C", 1, 0)
         end
         society.strategy = copy(society.next_strategy)
     end
 
     function count_fc(society::SocietyType)
-        fc = society.num_c/society.population
+        fc = length(filter(strategy -> strategy == "C", society.strategy))/society.population
 
         return fc
     end
