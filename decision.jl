@@ -5,13 +5,13 @@ module Decision
     using StatsBase
     using ..Society
 
-    function choose_initial_cooperators(population)
-        init_c = StatsBase.self_avoid_sample!(1:population, [i for i = 1:Int(population/2)])
+    function choose_initial_cooperators(population::Int)
+        init_c::Vector{Int} = StatsBase.self_avoid_sample!(1:population, [i for i = 1:Int(population/2)])
 
         return init_c
     end
 
-    function initialize_strategy(society, init_c)
+    function initialize_strategy(society::SocietyType, init_c::Vector{Int})
         for id = 1:society.population
             if id in init_c
                 society.strategy[id] = "C"
@@ -22,11 +22,11 @@ module Decision
         end
     end
 
-    function count_payoff(society::SocietyType, dg::Float16, dr::Float16)
-        R::Float16 = 1.0
-        T::Float16 = 1.0+dg
-        S::Float16 = -dr
-        P::Float16 = 0.0
+    function count_payoff(society::SocietyType, dg, dr)
+        R = 1.0
+        T = 1.0+dg
+        S = -dr
+        P = 0.0
 
         for id = 1:society.population
             society.point[id] = 0.0
@@ -44,7 +44,7 @@ module Decision
         end
     end
     
-    function pairwise_fermi(society::SocietyType, kappa::Float16)
+    function pairwise_fermi(society::SocietyType, kappa)
         society.num_c = 0
         for id = 1:society.population
             opp_id = rand(society.neighbors_id[id])
