@@ -6,7 +6,7 @@ module Society
         num_c::Int
         strategy::Vector{AbstractString}
         next_strategy::Vector{AbstractString}
-        point::Vector{Float16}
+        point::Vector{}
         neighbors_id::Vector{Vector{Int}}
 
         SocietyType(population, topology) = new(population,
