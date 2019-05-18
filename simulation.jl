@@ -8,7 +8,7 @@ module Simulation
     using Statistics
     using Random
     
-    function time_loop(society::SocietyType, init_c::Vector{Int}, episode::Int, beta::Float16, dg::Float16, dr::Float16)
+    function time_loop(society::SocietyType, init_c::Vector{Int}, episode::Int, beta, dg, dr)
         initialize_strategy(society, init_c)
         init_fc = count_fc(society)
         fc_hist = [init_fc]
@@ -34,12 +34,12 @@ module Simulation
 
     function one_episode(episode::Int, population::Int, topology)
         Random.seed!()
-        society::SocietyType = SocietyType(population, topology)
+        society = SocietyType(population, topology)
         DataFrame(Beta = [], Dg = [], Dr = [], Fc = []) |> CSV.write("episode_$(episode).csv")
         init_c = choose_initial_cooperators(population)
-        for beta::Float16 in [10]
-            for dg::Float16 = -1.0:0.1:1.0
-                for dr::Float16 = -1.0:0.1:1.0
+        for beta in [10]
+            for dg = -1.0:0.1:1.0
+                for dr = -1.0:0.1:1.0
                     fc = time_loop(society, init_c, episode, beta, dg, dr)
                     DataFrame(Beta = [beta], Dg = [dg], Dr = [dr], Fc = [fc]) |> CSV.write("episode_$(episode).csv", append=true)
                 end
