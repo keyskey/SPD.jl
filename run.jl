@@ -5,13 +5,11 @@ using Distributed
 # @everywhere include("simulation.jl")
 include("simulation.jl")
 using .Simulation
-
-using PyCall
-@pyimport networkx as nx
  
 const num_episode = 1
-const population = 10000
-const topology = nx.random_regular_graph(8, population) 
+const population = 100
+const average_degree = 8
+const topology_name = "Lattice"
 
-map(episode -> Simulation.one_episode(episode, population, topology), 1:num_episode)
+map(episode -> Simulation.one_episode(episode, population, average_degree, topology_name), 1:num_episode)
 #Distributed.pmap(episode -> Simulation.one_episode(episode, population, topology), 1:num_episode)
