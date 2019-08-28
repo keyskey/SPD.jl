@@ -1,79 +1,83 @@
 module Society
-    export SocietyType
-    using LightGraphs
+using StatsBase
+include("./network_generator.jl")
+using .NetworkGenerator
+export SocietyType, choose_initial_cooperators, initialize_strategy!, count_payoff!, pairwise_fermi!, count_fc
 
-    mutable struct SocietyType
-        population::Int
-        strategy::Vector{AbstractString}
-        point::Vector{Float64}
-        neighbors_id::Vector{Vector{Int}}
+const cooperation = 1
+const defection = 0
+
+mutable struct SocietyType
+    population::Int
+    strategies::Vector{Int}
+    points::Vector{Float64}
+    neighbors_id::Vector{Vector{Int}}
+
+    SocietyType(population::Int, average_degree::Int, topology_type::AbstractString) = new(
+        population,
+        fill(cooperation, population),
+        zeros(population),
+        generate_topology(population, average_degree, topology_type) |> generate_neighbors_list
+    )
+end
+
+function choose_initial_cooperators(population::Int)
+    initial_cooperators = StatsBase.self_avoid_sample!(1:population, collect(1:div(population, 2)))
+
+    return initial_cooperators
+end
+
+function initialize_strategy!(society::SocietyType, initial_cooperators::Vector{Int})
+    for id in 1:society.population
+        if id in initial_cooperators
+            society.strategies[id] = cooperation
+        else
+            society.strategies[id] = defection
+        end
     end
 
-    function SocietyType(population::Int, average_degree::Int, topology_name::AbstractString)
-        strategy     = fill("D", population)
-        point        = zeros(population)
-        topology     = generate_topology(population, average_degree, topology_name)
-        neighbors_id = [LightGraphs.neighbors(topology, i) for i = 1:population]
+    society
+end
 
-        return SocietyType(population, strategy, point, neighbors_id)
-    end
+function count_payoff!(society::SocietyType, dg, dr)
+    R = 1.0
+    T = 1.0+dg
+    S = -dr
+    P = 0.0
 
-    function generate_topology(population::Int, average_degree::Int, topology_name::AbstractString)
-        if topology_name == "ER"
-            g = LightGraphs.random_regular_graph(population, average_degree)
-        elseif topology_name == "SF"
-            g = LightGraphs.barabasi_albert(population, div(average_degree, 2))
-        elseif topology_name == "Lattice"
-            n::Int = sqrt(population)
-            g = LightGraphs.Grid([n, n], periodic = true)
-
-            for x in 2:n-1
-                for y in 2:n-1
-                    # iからjにエッジを貼る
-                    i = (x-1)*n + y
-                    add_edge!(g, i, i+n+1) # 右上
-                    add_edge!(g, i, i+n-1) # 右下
-                    add_edge!(g, i, i-n+1) # 左上
-                    add_edge!(g, i, i-n-1) # 左下
-                end
-            end
-
-            # 左下のノード(1)
-            add_edge!(g, 1, n*(n-1)+2)
-            add_edge!(g, 1, population)
-            add_edge!(g, 1, 2n)
-
-            # 左上のノード(n)
-            add_edge!(g, n, n*(n-1)+1)
-            add_edge!(g, n, population-1)
-            add_edge!(g, n, n+1)
-
-            # 右下のノード(n(n-1)+1)
-            add_edge!(g, n*(n-1)+1, n)
-            add_edge!(g, n*(n-1)+1, n*(n-1))
-
-            # x = 1上, y = 2〜n-1
-            for y in 2:n-1
-                add_edge!(g, y, n*(n-1)+y-1) # 左下
-                add_edge!(g, y, n*(n-1)+y+1) # 左上
-                add_edge!(g, y, y+n+1)       # 右上
-                add_edge!(g, y, y+n-1)       # 右下
-            end
-
-            # y = 1上, x = 2 〜 n-1
-            for x in n+1:n:n*(n-2)+1
-                add_edge!(g, x, x-1)
-                add_edge!(g, x, x+2n-1)
-                add_edge!(g, x, x-n+1)
-                add_edge!(g, x, x+n+1)
-            end
-
-            # y = n上, x = 2 〜 n-1
-            for x in 2n:n:n*(n-1)
-                add_edge!(g, x, x+n-1)
+    for id = 1:society.population
+        society.points[id] = 0.0
+        for nb_id in society.neighbors_id[id]
+            if society.strategies[id] == cooperation && society.strategies[nb_id] == cooperation
+                society.points[id] += R
+            elseif society.strategies[id] == defection && society.strategies[nb_id] == cooperation
+                society.points[id] += T
+            elseif society.strategies[id] == cooperation && society.strategies[nb_id] == defection
+                society.points[id] += S
+            elseif society.strategies[id] == defection && society.strategies[nb_id] == defection
+                society.points[id] += P
             end
         end
-
-        return g
     end
+
+    society
+end
+
+function pairwise_fermi!(society::SocietyType, kappa)
+    next_strategy = copy(society.strategies)
+    for id = 1:society.population
+        opp_id = rand(society.neighbors_id[id])
+        next_strategy[id] = ifelse(rand() < 1/(1+exp((society.points[id] - society.points[opp_id])/kappa)), society.strategies[opp_id], society.strategies[id])
+    end
+    society.strategies = next_strategy
+
+    society
+end
+
+function count_fc(society::SocietyType)
+    fc = length(society.strategies[society.strategies .== cooperation])/society.population
+
+    return fc
+end
+
 end
