@@ -1,6 +1,7 @@
-module Simulation
 include("./society.jl")
-using .Society
+
+module Simulation
+using ..Society
 using CSV
 using DataFrames
 using Statistics
@@ -33,13 +34,9 @@ function one_episode(episode::Int, population::Int, average_degree::Int, topolog
     Random.seed!()
     society = SocietyType(population, average_degree, topology_type)
 
-    if isdir("./results") == false
-        run(`mkdir results`)
-    end
-
     DataFrame(Dg = [], Dr = [], Fc = []) |> CSV.write("./results/episode_$(episode).csv")
     initial_cooperators = choose_initial_cooperators(population)
-    beta_range = [0.1, 1, 10]
+    beta_range = (0.1, 1, 10)
     kappa_range = 1 ./ beta_range
     for kappa in kappa_range
         for dg in -1:0.1:1

@@ -9,4 +9,8 @@ const population = 10000
 const average_degree = 8
 const topology_type = "Ring"  # ER | ScaleFree | Lattice | Ring
 
+if isdir("./results") == false
+    run(`mkdir results`)
+end
+
 Distributed.pmap(episode -> Simulation.one_episode(episode, population, average_degree, topology_type), 1:num_episode)

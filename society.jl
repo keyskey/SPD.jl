@@ -1,7 +1,8 @@
+include("./network_generator.jl")
+
 module Society
 using StatsBase
-include("./network_generator.jl")
-using .NetworkGenerator
+using ..NetworkGenerator
 export SocietyType, choose_initial_cooperators, initialize_strategy!, count_payoff!, pairwise_fermi!, count_fc
 
 const cooperation = 1
