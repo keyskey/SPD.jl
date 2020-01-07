@@ -1,6 +1,6 @@
 module NetworkGenerator
 using LightGraphs
-export generate_topology, generate_neighbors_list
+export generate_topology, get_all_neighbors
 
 function generate_lattice(population::Int)
     n::Int = sqrt(population)
@@ -53,22 +53,22 @@ function generate_lattice(population::Int)
     end
 end
 
-function generate_topology(population::Int, average_degree::Int, topology_type::AbstractString)
-    if topology_type == "ER"
+function generate_topology(population::Int, average_degree::Int, topology_type::Symbol)
+    if topology_type == :ER
         g = LightGraphs.random_regular_graph(population, average_degree)
-    elseif topology_type == "ScaleFree"
+    elseif topology_type == :ScaleFree
         g = LightGraphs.barabasi_albert(population, div(average_degree, 2))
-    elseif topology_type == "Lattice"
+    elseif topology_type == :Lattice
         g = generate_lattice(population)
-    elseif topology_type == "Ring"
+    elseif topology_type == :Ring
         g = LightGraphs.SimpleGraphs.CycleGraph(population)
     end
 
     return g
 end
 
-function generate_neighbors_list(topology::SimpleGraph)
-    return [LightGraphs.neighbors(topology, i) for i in 1:LightGraphs.nv(topology)]
+function get_all_neighbors(topology::SimpleGraph)
+    return [LightGraphs.neighbors(topology, agent_id) for agent_id in 1:LightGraphs.nv(topology)]
 end
 
 end
